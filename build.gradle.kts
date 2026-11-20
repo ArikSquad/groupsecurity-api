@@ -18,18 +18,27 @@ subprojects {
     }
 
     extensions.configure<PublishingExtension> {
-        val repositoryDirectory = providers.gradleProperty("mavenRepositoryDirectory").orNull
-        if (repositoryDirectory != null) {
-            repositories.maven {
-                name = "Distribution"
-                url = rootProject.uri(repositoryDirectory)
+        repositories {
+            maven("https://repo.codemc.io/repository/ArikSquad/") {
+                val mavenUsername = providers.environmentVariable("JENKINS_USERNAME")
+                    .orElse(providers.gradleProperty("mavenUsername"))
+                val mavenPassword = providers.environmentVariable("JENKINS_PASSWORD")
+                    .orElse(providers.gradleProperty("mavenPassword"))
+
+                if (mavenUsername.isPresent && mavenPassword.isPresent) {
+                    credentials {
+                        username = mavenUsername.get()
+                        password = mavenPassword.get()
+                    }
+                }
             }
         }
 
-        publications.create<MavenPublication>("api") {
+        publications.create<MavenPublication>("mavenJava") {
             from(components["java"])
             pom {
                 name.set(project.name)
+                description.set("GroupSecurity public API and platform bindings")
                 url.set("https://github.com/ArikSquad/groupsecurity-api")
                 licenses {
                     license {
