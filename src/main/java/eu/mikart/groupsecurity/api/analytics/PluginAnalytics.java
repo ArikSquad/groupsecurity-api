@@ -59,12 +59,19 @@ public final class PluginAnalytics {
 
     public enum Aggregation { COUNT, UNIQUE_ACTORS, SUM, AVERAGE }
 
-    public record TabDefinition(String id, String title, List<Metric> metrics) {
+    public record TabDefinition(String id, String title, List<Metric> metrics, List<Funnel> funnels) {
+        public TabDefinition(String id, String title, List<Metric> metrics) {
+            this(id, title, metrics, List.of());
+        }
+
         public TabDefinition {
             checkKey(id);
             checkText(title, 80);
             metrics = List.copyOf(metrics);
-            if (metrics.isEmpty() || metrics.size() > 8) throw new IllegalArgumentException("Expected 1–8 metrics");
+            funnels = List.copyOf(funnels);
+            if (metrics.size() + funnels.size() == 0 || metrics.size() + funnels.size() > 8) {
+                throw new IllegalArgumentException("Expected 1–8 metrics or funnels");
+            }
         }
     }
 
@@ -86,6 +93,25 @@ public final class PluginAnalytics {
             }
             filters = copyProperties(filters, 8);
             if (breakdownProperty != null) checkKey(breakdownProperty);
+        }
+    }
+
+    /** Counts actors through ordered steps within a conversion window. */
+    public record Funnel(String label, List<FunnelStep> steps, long conversionWindowMillis) {
+        public Funnel {
+            checkText(label, 80);
+            steps = List.copyOf(steps);
+            if (steps.size() < 2 || steps.size() > 8) throw new IllegalArgumentException("Expected 2–8 funnel steps");
+            if (conversionWindowMillis <= 0) throw new IllegalArgumentException("Expected a positive conversion window");
+        }
+    }
+
+    /** Matches an event and its exact typed property filters. */
+    public record FunnelStep(String label, String eventName, Map<String, Object> filters) {
+        public FunnelStep {
+            checkText(label, 80);
+            checkKey(eventName);
+            filters = copyProperties(filters, 8);
         }
     }
 
