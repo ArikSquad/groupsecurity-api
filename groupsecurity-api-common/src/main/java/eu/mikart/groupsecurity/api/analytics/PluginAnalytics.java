@@ -1,5 +1,6 @@
 package eu.mikart.groupsecurity.api.analytics;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -59,9 +60,19 @@ public final class PluginAnalytics {
 
     public enum Aggregation { COUNT, UNIQUE_ACTORS, SUM, AVERAGE }
 
-    public record TabDefinition(String id, String title, List<Metric> metrics, List<Funnel> funnels) {
+    public record TabDefinition(String id, String title, List<Metric> metrics, List<Funnel> funnels,
+                                List<Flow> flows, List<Heatmap> heatmaps, List<HistoricalFlow> historicalFlows) {
         public TabDefinition(String id, String title, List<Metric> metrics) {
             this(id, title, metrics, List.of());
+        }
+
+        public TabDefinition(String id, String title, List<Metric> metrics, List<Funnel> funnels) {
+            this(id, title, metrics, funnels, List.of(), List.of());
+        }
+
+        public TabDefinition(String id, String title, List<Metric> metrics, List<Funnel> funnels,
+                             List<Flow> flows, List<Heatmap> heatmaps) {
+            this(id, title, metrics, funnels, flows, heatmaps, List.of());
         }
 
         public TabDefinition {
@@ -69,9 +80,11 @@ public final class PluginAnalytics {
             checkText(title, 80);
             metrics = List.copyOf(metrics);
             funnels = List.copyOf(funnels);
-            if (metrics.size() + funnels.size() == 0 || metrics.size() + funnels.size() > 8) {
-                throw new IllegalArgumentException("Expected 1–8 metrics or funnels");
-            }
+            flows = List.copyOf(flows);
+            heatmaps = List.copyOf(heatmaps);
+            historicalFlows = List.copyOf(historicalFlows);
+            int widgets = metrics.size() + funnels.size() + flows.size() + heatmaps.size() + historicalFlows.size();
+            if (widgets < 1 || widgets > 8) throw new IllegalArgumentException("Expected 1–8 widgets");
         }
     }
 
@@ -112,6 +125,100 @@ public final class PluginAnalytics {
             checkText(label, 80);
             checkKey(eventName);
             filters = copyProperties(filters, 8);
+        }
+    }
+
+    /**
+     * Aggregates positive weights by directed source and destination. For currency, capture
+     * integer minor units and use a filter to keep different currencies in separate widgets.
+     */
+    public record Flow(String label, String eventName, String sourceProperty, String destinationProperty,
+                       String weightProperty, String unit, Map<String, Object> filters) {
+        public Flow {
+            checkText(label, 80);
+            checkKey(eventName);
+            checkKey(sourceProperty);
+            checkKey(destinationProperty);
+            checkKey(weightProperty);
+            checkText(unit, 24);
+            filters = copyProperties(filters, 8);
+        }
+    }
+
+    /** A widget backed by the registering plugin's durable data source. */
+    public record HistoricalFlow(String label, String unit, FlowQuery query) {
+        public HistoricalFlow {
+            checkText(label, 80);
+            checkText(unit, 24);
+            Objects.requireNonNull(query);
+        }
+    }
+
+    @FunctionalInterface
+    public interface FlowQuery {
+        /**
+         * Query the inclusive time range and return at most maxEdges of the largest routes.
+         * This runs off the game thread. Apply a storage timeout and honor interruption.
+         */
+        FlowResult read(long fromMillis, long toMillis, int maxEdges) throws Exception;
+    }
+
+    public record FlowResult(BigDecimal total, long observations, long edgeCount, List<FlowEdge> edges) {
+        public FlowResult {
+            checkAmount(total);
+            edges = List.copyOf(edges);
+            if (observations < edgeCount || edgeCount < edges.size() || edges.size() > 50) {
+                throw new IllegalArgumentException("Invalid flow result size");
+            }
+        }
+    }
+
+    public record FlowEdge(String source, String destination, BigDecimal amount) {
+        public FlowEdge {
+            checkText(source, 128);
+            checkText(destination, 128);
+            checkAmount(amount);
+        }
+    }
+
+    private static void checkAmount(BigDecimal amount) {
+        if (amount.signum() < 0 || amount.precision() > 64 || amount.scale() < -64 || amount.scale() > 64) {
+            throw new IllegalArgumentException("Expected a non-negative, bounded decimal amount");
+        }
+    }
+
+    public enum CoordinateSpace { GEOGRAPHIC, PLANAR }
+
+    /**
+     * Aggregates events into a fixed grid. Geographic coordinates use longitude as x and latitude
+     * as y. A planar widget can use game coordinates, with positive y displayed upward.
+     * A null weight property counts matching events.
+     */
+    public record Heatmap(String label, String eventName, CoordinateSpace space, String xProperty, String yProperty,
+                          Bounds bounds, int resolution, String weightProperty, Map<String, Object> filters) {
+        public Heatmap {
+            checkText(label, 80);
+            checkKey(eventName);
+            Objects.requireNonNull(space);
+            checkKey(xProperty);
+            checkKey(yProperty);
+            Objects.requireNonNull(bounds);
+            if (resolution < 2 || resolution > 32) throw new IllegalArgumentException("Expected a grid size of 2–32");
+            if (space == CoordinateSpace.GEOGRAPHIC &&
+                (bounds.minX < -180 || bounds.maxX > 180 || bounds.minY < -85 || bounds.maxY > 85)) {
+                throw new IllegalArgumentException("Geographic bounds exceed the supported Mercator range");
+            }
+            if (weightProperty != null) checkKey(weightProperty);
+            filters = copyProperties(filters, 8);
+        }
+    }
+
+    public record Bounds(double minX, double minY, double maxX, double maxY) {
+        public Bounds {
+            if (!Double.isFinite(minX) || !Double.isFinite(minY) || !Double.isFinite(maxX) || !Double.isFinite(maxY)
+                || maxX <= minX || maxY <= minY || !Double.isFinite(maxX - minX) || !Double.isFinite(maxY - minY)) {
+                throw new IllegalArgumentException("Expected finite bounds with a positive span");
+            }
         }
     }
 

@@ -1,22 +1,19 @@
-plugins {
-    `java-library`
-    `maven-publish`
-}
+subprojects {
+    group = "eu.mikart"
+    version = "0.1.0"
 
-group = "eu.mikart"
-version = "0.0.2"
+    apply(plugin = "java-library")
+    apply(plugin = "maven-publish")
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
-    withSourcesJar()
-    withJavadocJar()
-}
+    repositories { mavenCentral() }
 
-publishing {
-    publications {
-        create<MavenPublication>("api") {
-            from(components["java"])
-        }
+    extensions.configure<JavaPluginExtension> {
+        toolchain.languageVersion.set(JavaLanguageVersion.of(21))
+        withSourcesJar()
+        withJavadocJar()
+    }
+
+    extensions.configure<PublishingExtension> {
+        publications.create<MavenPublication>("api") { from(components["java"]) }
     }
 }
