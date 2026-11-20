@@ -13,7 +13,19 @@ subprojects {
         withJavadocJar()
     }
 
+    tasks.withType<Jar>().configureEach {
+        from(rootProject.file("LICENSE")) { into("META-INF") }
+    }
+
     extensions.configure<PublishingExtension> {
+        val repositoryDirectory = providers.gradleProperty("mavenRepositoryDirectory").orNull
+        if (repositoryDirectory != null) {
+            repositories.maven {
+                name = "Distribution"
+                url = rootProject.uri(repositoryDirectory)
+            }
+        }
+
         publications.create<MavenPublication>("api") {
             from(components["java"])
             pom {
