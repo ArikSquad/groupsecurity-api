@@ -5,7 +5,7 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * The GroupSecurity API implementation for the Spigot platform
- * </p>
+ * <p>
  * Retrieve an instance of the API class via {@link #getInstance()}.
  */
 @SuppressWarnings("unused")
