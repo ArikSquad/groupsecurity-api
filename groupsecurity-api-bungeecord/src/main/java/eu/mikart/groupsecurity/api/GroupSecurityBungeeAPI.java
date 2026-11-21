@@ -4,25 +4,23 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * The GroupSecurity API implementation for the Bungee platform
- * <p>
- * Retrieve an instance of the API class via {@link #getInstance()}.
+ * The GroupSecurity API binding for BungeeCord.
+ *
+ * @see #getInstance()
+ * @see GroupSecurityAPI
  */
 @SuppressWarnings("unused")
 public class GroupSecurityBungeeAPI extends GroupSecurityAPI {
 
-    /**
-     * <b>(Internal use only)</b> - Constructor, instantiating the API.
-     */
-    @ApiStatus.Internal
     private GroupSecurityBungeeAPI(@NotNull Backend backend) {
         super(backend);
     }
 
     /**
-     * Entrypoint to the GroupSecurity API on the Bungee platform - returns an instance of the API
+     * Returns the active BungeeCord binding.
      *
-     * @return instance of the GroupSecurity API
+     * @return the registered platform API
+     * @throws GroupSecurityAPI.NotRegisteredException if the binding is unavailable
      * @since 1.0
      */
     @NotNull
@@ -32,7 +30,7 @@ public class GroupSecurityBungeeAPI extends GroupSecurityAPI {
     }
 
     /**
-     * <b>(Internal use only)</b> - Register the API for this platform.
+     * Publishes the API binding during platform startup.
      *
      * @param backend the runtime adapter
      * @since 1.0

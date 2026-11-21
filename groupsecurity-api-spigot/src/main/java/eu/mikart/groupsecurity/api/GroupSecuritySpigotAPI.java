@@ -4,24 +4,22 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * The GroupSecurity API implementation for the Spigot platform
- * <p>
- * Retrieve an instance of the API class via {@link #getInstance()}.
+ * The GroupSecurity API binding for Spigot and compatible Bukkit servers.
+ *
+ * @see #getInstance()
+ * @see GroupSecurityAPI
  */
 @SuppressWarnings("unused")
 public class GroupSecuritySpigotAPI extends GroupSecurityAPI {
-    /**
-     * <b>(Internal use only)</b> - Constructor, instantiating the API.
-     */
-    @ApiStatus.Internal
     private GroupSecuritySpigotAPI(@NotNull Backend backend) {
         super(backend);
     }
 
     /**
-     * Entrypoint to the GroupSecurity API on the Spigot platform - returns an instance of the API
+     * Returns the active Spigot and compatible Bukkit servers binding.
      *
-     * @return instance of the GroupSecurity API
+     * @return the registered platform API
+     * @throws GroupSecurityAPI.NotRegisteredException if the binding is unavailable
      * @since 1.0
      */
     @NotNull
@@ -31,7 +29,7 @@ public class GroupSecuritySpigotAPI extends GroupSecurityAPI {
     }
 
     /**
-     * <b>(Internal use only)</b> - Register the API for this platform.
+     * Publishes the API binding during platform startup.
      *
      * @param backend the runtime adapter
      * @since 1.0

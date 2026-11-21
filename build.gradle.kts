@@ -1,6 +1,8 @@
+import org.gradle.external.javadoc.StandardJavadocDocletOptions
+
 subprojects {
     group = "eu.mikart"
-    version = "0.1.0"
+    version = "0.2.0"
 
     apply(plugin = "java-library")
     apply(plugin = "maven-publish")
@@ -11,6 +13,14 @@ subprojects {
         toolchain.languageVersion.set(JavaLanguageVersion.of(21))
         withSourcesJar()
         withJavadocJar()
+    }
+
+    tasks.withType<Javadoc>().configureEach {
+        (options as StandardJavadocDocletOptions).apply {
+            encoding = "UTF-8"
+            tags("apiNote:a:API Note:", "implSpec:a:Implementation Requirements:")
+            addBooleanOption("Werror", true)
+        }
     }
 
     tasks.withType<Jar>().configureEach {
